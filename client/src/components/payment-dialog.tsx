@@ -22,6 +22,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useAuth } from "@/hooks/use-auth";
 
 const purchaseFormSchema = z.object({
   paymentMethod: z.enum(["momo", "card"]),
@@ -45,11 +46,13 @@ export default function PaymentDialog({
   package: pkg,
 }: PaymentDialogProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
+
   const form = useForm<PurchaseFormData>({
     resolver: zodResolver(purchaseFormSchema),
     defaultValues: {
       paymentMethod: "momo",
-      phoneNumber: "",
+      phoneNumber: user?.phoneNumber || "",
     },
   });
 

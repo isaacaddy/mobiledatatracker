@@ -6,6 +6,7 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  phoneNumber: text("phone_number").notNull(),
   balance: integer("balance").notNull().default(0),
 });
 
@@ -28,9 +29,15 @@ export const purchases = pgTable("purchases", {
   status: text("status").notNull(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
+export const insertUserSchema = createInsertSchema(users).extend({
+  phoneNumber: z.string()
+    .min(10, "Phone number must be at least 10 digits")
+    .max(15, "Phone number must not exceed 15 digits")
+    .regex(/^\d+$/, "Phone number must contain only digits"),
+}).pick({
   username: true,
   password: true,
+  phoneNumber: true,
 });
 
 export const insertDataPackageSchema = createInsertSchema(dataPackages);

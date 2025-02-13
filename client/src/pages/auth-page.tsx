@@ -128,6 +128,23 @@ function RegisterForm({ onSubmit }: { onSubmit: (data: any) => void }) {
         />
         <FormField
           control={form.control}
+          name="phoneNumber"
+          render={({ field }) => (
+            <FormItem>
+              <Label>Phone Number</Label>
+              <FormControl>
+                <Input 
+                  {...field} 
+                  placeholder="Enter your phone number"
+                  type="tel"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
           name="password"
           render={({ field }) => (
             <FormItem>
