@@ -1,8 +1,11 @@
-import { User, InsertUser, DataPackage, Purchase, mockDataPackages } from "@shared/schema";
+import { users, dataPackages, purchases, type User, type InsertUser, type DataPackage, type Purchase } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 import session from "express-session";
-import createMemoryStore from "memorystore";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 
-const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -14,56 +17,43 @@ export interface IStorage {
   sessionStore: session.Store;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private purchases: Map<number, Purchase>;
-  private currentUserId: number;
-  private currentPurchaseId: number;
+export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    this.users = new Map();
-    this.purchases = new Map();
-    this.currentUserId = 1;
-    this.currentPurchaseId = 1;
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000,
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true,
     });
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
-    const user: User = { ...insertUser, id, balance: 0 };
-    this.users.set(id, user);
+    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
 
   async getDataPackages(): Promise<DataPackage[]> {
-    return mockDataPackages;
+    return db.select().from(dataPackages);
   }
 
   async getPurchasesByUserId(userId: number): Promise<Purchase[]> {
-    return Array.from(this.purchases.values()).filter(
-      (purchase) => purchase.userId === userId,
-    );
+    return db.select().from(purchases).where(eq(purchases.userId, userId));
   }
 
   async createPurchase(purchase: Omit<Purchase, "id">): Promise<Purchase> {
-    const id = this.currentPurchaseId++;
-    const newPurchase = { ...purchase, id };
-    this.purchases.set(id, newPurchase);
+    const [newPurchase] = await db.insert(purchases).values(purchase).returning();
     return newPurchase;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
