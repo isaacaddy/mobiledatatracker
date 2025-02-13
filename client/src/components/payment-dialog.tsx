@@ -11,13 +11,27 @@ import {
   FormField,
   FormItem,
   FormLabel,
+  FormMessage,
 } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { DataPackage } from "@shared/schema";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+const purchaseFormSchema = z.object({
+  paymentMethod: z.enum(["momo", "card"]),
+  phoneNumber: z.string()
+    .min(10, "Phone number must be at least 10 digits")
+    .max(15, "Phone number must not exceed 15 digits")
+    .regex(/^\d+$/, "Phone number must contain only digits"),
+});
+
+type PurchaseFormData = z.infer<typeof purchaseFormSchema>;
 
 interface PaymentDialogProps {
   open: boolean;
@@ -31,14 +45,16 @@ export default function PaymentDialog({
   package: pkg,
 }: PaymentDialogProps) {
   const { toast } = useToast();
-  const form = useForm({
+  const form = useForm<PurchaseFormData>({
+    resolver: zodResolver(purchaseFormSchema),
     defaultValues: {
       paymentMethod: "momo",
+      phoneNumber: "",
     },
   });
 
   const purchaseMutation = useMutation({
-    mutationFn: async (data: { packageId: number; paymentMethod: string }) => {
+    mutationFn: async (data: PurchaseFormData & { packageId: number }) => {
       const res = await apiRequest("POST", "/api/purchases", data);
       return res.json();
     },
@@ -59,10 +75,10 @@ export default function PaymentDialog({
     },
   });
 
-  const onSubmit = (data: { paymentMethod: string }) => {
+  const onSubmit = (data: PurchaseFormData) => {
     purchaseMutation.mutate({
+      ...data,
       packageId: pkg.id,
-      paymentMethod: data.paymentMethod,
     });
   };
 
@@ -86,6 +102,23 @@ export default function PaymentDialog({
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="phoneNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Recipient Phone Number</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter phone number"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="paymentMethod"

@@ -22,6 +22,7 @@ export const purchases = pgTable("purchases", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
   packageId: integer("package_id").notNull(),
+  phoneNumber: text("phone_number").notNull(),
   purchaseDate: timestamp("purchase_date").notNull().defaultNow(),
   paymentMethod: text("payment_method").notNull(),
   status: text("status").notNull(),

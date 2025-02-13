@@ -19,15 +19,16 @@ export function registerRoutes(app: Express): Server {
 
   app.post("/api/purchases", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     const purchase = await storage.createPurchase({
       userId: req.user.id,
       packageId: req.body.packageId,
+      phoneNumber: req.body.phoneNumber,
       purchaseDate: new Date(),
       paymentMethod: req.body.paymentMethod,
       status: "completed",
     });
-    
+
     res.status(201).json(purchase);
   });
 
